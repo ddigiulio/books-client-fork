@@ -1,0 +1,11 @@
+language: node_js
+node_js: node
+services:
+- mongodb
+deploy:
+  provider: heroku
+  api_key:
+    secure: eJ16S6Eyj75Cw5k5QVObJSwhOJyNKH+s+ZlXGCfqfTwy4w+kOBRiXPj/YWQlLe3rFQs/eBrxYd/Zwoz4vQVC9/ePZ99dofT1pDZOv28oPMNiPxjzuw7SLu+LtV7/D6zp2P/8kBmm24OqjuTQSJ9h1gpRLY9RKn7qgfin4QvkifRfMXj1U7gsknJmnR4xAbT59Rybe5b8cqjPgm9gLa6i5BWedUIcRkVVOmoOylfxh2L/i8NH293sYUnWdO+gsW5PFy3BcHLRgUhG3Wyq0DS4hYfLXWn0RNwt5xgS4T/lK/EQx2J7ITnULP3R+2gLez10WYjLof9ncTN/07VbCqsxfESuRwmDcqUnLhzIWGp0CBf0k6j1pQViHmzSgelVcUH7fW5x6w21aPBiZgT8qsrZYW5xc6wi9UhpePc6h+NUMPS6cw4SZwzSOpnur7UGuzPfrhKK987cV91hkIlK06/1O98Zra7Uev8njEITSCS1eutAueDLvD7b2sV5coeGjA77dDKTYUJUOiPINHfiyhpB214H5celjTspHonjHVMkl8NQem0ACa/xMDHfkks8K58qFWQji8x7BCUJ2BJwFNSGgmedDZ1MOAny1p3rBd8nwu9RMmC5EsBSzcBMiEn2HhwIrrKTVIVUDlGoNNataHGYsjnQlxmUQox2rN0aV5E2Z6w=
+  app: glacial-beyond-88215
+  on:
+    repo: ddigiulio/books-api
