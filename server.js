@@ -1,7 +1,16 @@
- const express = require('express');
- const app = express();
+const express = require('express');
+const app = express();
 
- const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
+
+const cors = require('cors');
+const {CLIENT_ORIGIN} = require('./config');
+
+app.use(
+    cors({
+        origin: CLIENT_ORIGIN
+    })
+);
 //comment
 //comment
  app.get('/api/*', (req, res) => {
