@@ -4,7 +4,10 @@ const booksSchema = mongoose.Schema({
   title: {type: String, required: true},
   author: {type: String, required: true},
   imageSrc: {type: String, required: true},
- 
+  description: {type: String},
+  rating: {type: Number},
+  pubYear: {type: Number},
+  pubMonth: {type: Number}
 
 });
 

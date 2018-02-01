@@ -7,115 +7,114 @@ var mongoose = require('mongoose');
 const axios = require('axios')
 const parseString = require('xml2js').parseString
 router.use(jsonParser);
-const {User} = require('../users/models')
+const { User } = require('../users/models')
 
 const { books } = require('./models')
 
 const jwtAuth = passport.authenticate('jwt', { session: false });
-const loadUser = function(req, res, next) {
-    if(req.user.id){
+const loadUser = function (req, res, next) {
+    if (req.user.id) {
         User.findById(req.user.id)
-        .then(user => {
-            req.user = user
-            next();
-        })
+            .then(user => {
+                req.user = user
+                next();
+            })
     }
-    else{
+    else {
         next({
-           error: "No Authenticated User"
+            error: "No Authenticated User"
         });
     }
 }
-// router.get("/:title", jwtAuth, loadUser, function (req, res) {
 
-
-//     let user = req.user
-//     console.log(user)
-//     var myurl = "https://www.goodreads.com/search/index.xml"
-//     //my goodReads key
-//     var key = "u357GGD3r1AuoeoFpQz2Q"
-//     axios.get(myurl, {
-//         params: {
-//             q: req.params.title,
-//             key,
-//         }
-//     })
-//         .then(function (data) {
-//             parseString(data.data, function (err, result) {
-//                 // console.log(result)
-//                 // res.send(result)
-
-
-//             });
-
-//         })
-//         .catch(function (error) {
-
-//             res.send(error);
-//         });
-// })
-
-router.get("/author/:name", function (request, response) {
-    var url = "https://www.goodreads.com/api/author_url/"
-    var id = request.params.name
-    var myurl = url + id;
-    var key = "u357GGD3r1AuoeoFpQz2Q"
-    axios.get(myurl, {
-        params: {
-            key
-        }
-    })
-        .then(function (data) {
-            parseString(data.data, function (err, result) {
-                var param = result.GoodreadsResponse.author[0].$.id
-                const url = "http://localhost:8080/authorID/" + param
-                axios.get(url).
-                    then(function (result) {
-                        response.send(result.data)
-                    }).catch(function (error) {
-                        response.send(error);
-                    })
-            });
-
-        })
-        .catch(function (error) {
-            console.log(error);
-            response.send(error);
-        });
-})
-
-router.get("/authorID/:id", function (request, response) {
-    var url = "https://www.goodreads.com/author/show/"
-    var id = request.params.id
-    var myurl = url + id;
-    var key = "u357GGD3r1AuoeoFpQz2Q"
-    axios.get(myurl, {
-        params: {
-            key
-        }
-    })
-        .then(function (data) {
-            parseString(data.data, function (err, result) {
-                response.send(result)
-            });
-
-        })
-        .catch(function (error) {
-            console.log(error);
-            response.send(error);
-        });
-})
-
-
-router.get("/currentlyReading", jwtAuth, function (req, res){
+//endpoint to update the currentlyReading book
+router.get("/currentlyReading", jwtAuth, loadUser, function (req, res) {
     let user = req.user
-    console.log("hello")
     res.send(user.currentlyReading)
 })
 
-router.get("/currentlyReading/:title", jwtAuth, loadUser, function (req, res){
+router.post("/currentlyReadingAdd/:bookID", jwtAuth, loadUser, function (req, res) {
 
-    console.log("Here")
+    let user = req.user
+    var myurl = "https://www.goodreads.com/search/index.xml"
+    //my goodReads key
+    var key = "u357GGD3r1AuoeoFpQz2Q"
+    axios.get(myurl, {
+        params: {
+            q: user.currentSearch,
+            key,
+        }
+    })
+        .then(function (data) {
+            parseString(data.data, function (err, result) {
+        
+                // res.send(result.GoodreadsResponse.search[0].results[0].work)
+                const searchResult = []
+                const showURL = "https://www.goodreads.com/book/show.xml"
+                let book ={};
+                for (i = 0; i < 5; i++ ){
+                    
+                    if(req.params.bookID === result.GoodreadsResponse.search[0].results[0].work[i].best_book[0].id[0]._){
+                        
+                        book = {
+                            author: result.GoodreadsResponse.search[0].results[0].work[i].best_book[0].author[0].name[0],
+                            title: result.GoodreadsResponse.search[0].results[0].work[i].best_book[0].title[0],
+                            rating :result.GoodreadsResponse.search[0].results[0].work[i].average_rating[0],
+                            imageSrc: result.GoodreadsResponse.search[0].results[0].work[i].best_book[0].image_url[0],
+                            pubYear: result.GoodreadsResponse.search[0].results[0].work[i].original_publication_year[0]._,
+                            pubMonth : result.GoodreadsResponse.search[0].results[0].work[i].original_publication_month[0]._
+                        }
+                    }      
+                }
+                
+                axios.get(showURL, {
+                    params: {
+                        format: "xml",
+                        key,
+                        id: req.params.bookID,
+                    }
+                })
+                    .then(data => {
+                        parseString(data.data, function (err, result) {
+                            let description = result.GoodreadsResponse.book[0].description[0]
+                            description = description.replace(/<br\s*[\/]?>/g,"")
+                            description = description.replace(/<i>/g,"")
+                            description = description.replace(/<[\/]i>/g,"")
+                           
+                            books.create({
+                                author: book.author,
+                                title: book.title,
+                                imageSrc: book.imageSrc,
+                                description: description,
+                                rating: book.rating,
+                                pubYear: book.pubYear,
+                                pubMonth: book.pubMonth
+                            })
+                            .then(book => {
+                                user.currentlyReading = book;
+                                user.currentSearch="";
+                                user.save()
+                                .then( () => {
+                                    res.send(user.currentlyReading)
+                                })
+
+                            }) 
+                                            
+                        });
+                    })           
+                
+                
+            });
+        })
+        .catch(function (error) {
+            res.send(error);
+        });
+})
+
+
+//endpoint to search for and update a book by title
+router.get("/currentlyReading/:title", jwtAuth, loadUser, function (req, res) {
+
     let user = req.user
     var myurl = "https://www.goodreads.com/search/index.xml"
     //my goodReads key
@@ -128,25 +127,195 @@ router.get("/currentlyReading/:title", jwtAuth, loadUser, function (req, res){
     })
         .then(function (data) {
             parseString(data.data, function (err, result) {
-  
-                const parsed = result.GoodreadsResponse.search[0].results[0].work[0].best_book[0]
-
-                books.create({
-                    author: parsed.author[0].name[0],
-                    title: parsed.title[0],
-                    imageSrc: parsed.image_url[0]
+        
+                // res.send(result.GoodreadsResponse.search[0].results[0].work)
+                const searchResult = []
+                const showURL = "https://www.goodreads.com/book/show.xml"
+                for (i = 0; i < 5; i++ ){
+                 bookResult =  {  
+                 index : i,
+                 bookID :result.GoodreadsResponse.search[0].results[0].work[i].best_book[0].id[0]._,
+                 rating :result.GoodreadsResponse.search[0].results[0].work[i].average_rating[0],
+                 title : result.GoodreadsResponse.search[0].results[0].work[i].best_book[0].title[0],
+                 author: result.GoodreadsResponse.search[0].results[0].work[i].best_book[0].author[0],
+                 imageSrc: result.GoodreadsResponse.search[0].results[0].work[i].best_book[0].image_url[0],
+                 pubYear : result.GoodreadsResponse.search[0].results[0].work[i].original_publication_year[0]._,
+                 pubMonth : result.GoodreadsResponse.search[0].results[0].work[i].original_publication_month[0]._
+                }          
+                searchResult.push(bookResult);
+                }
+                user.currentSearch = req.params.title
+                user.save()
+                .then(() =>{
+                    res.send(searchResult)
                 })
-                .then(
-                    function (book) {
-                        
-                        user.currentlyReading = book;
-                        user.save()
-                        .then(
-                            res.send(book)
-                        )
-                    }
-                )
+                
+            });
+        })
+        .catch(function (error) {
+            res.send(error);
+        });
+})
 
+router.get("/topBooks", jwtAuth, loadUser, function (req, res) {
+    let user = req.user
+    
+    res.send(user.topBooks)
+})
+
+router.post("/topBookAdd/:bookID", jwtAuth, loadUser, function (req, res) {
+
+    let user = req.user
+    var myurl = "https://www.goodreads.com/search/index.xml"
+    //my goodReads key
+    var key = "u357GGD3r1AuoeoFpQz2Q"
+    axios.get(myurl, {
+        params: {
+            q: user.topBooksSearch,
+            key,
+        }
+    })
+        .then(function (data) {
+            parseString(data.data, function (err, result) {
+        
+                // res.send(result.GoodreadsResponse.search[0].results[0].work)
+                const searchResult = []
+                const showURL = "https://www.goodreads.com/book/show.xml"
+                let book ={};
+                for (i = 0; i < 5; i++ ){
+                    
+                    if(req.params.bookID === result.GoodreadsResponse.search[0].results[0].work[i].best_book[0].id[0]._){
+                        
+                        book = {
+                            author: result.GoodreadsResponse.search[0].results[0].work[i].best_book[0].author[0].name[0],
+                            title: result.GoodreadsResponse.search[0].results[0].work[i].best_book[0].title[0],
+                            rating :result.GoodreadsResponse.search[0].results[0].work[i].average_rating[0],
+                            imageSrc: result.GoodreadsResponse.search[0].results[0].work[i].best_book[0].image_url[0],
+                            pubYear: result.GoodreadsResponse.search[0].results[0].work[i].original_publication_year[0]._,
+                            pubMonth : result.GoodreadsResponse.search[0].results[0].work[i].original_publication_month[0]._
+                        }
+                    }      
+                }
+                
+                axios.get(showURL, {
+                    params: {
+                        format: "xml",
+                        key,
+                        id: req.params.bookID,
+                    }
+                })
+                    .then(data => {
+                        parseString(data.data, function (err, result) {
+                            let description = result.GoodreadsResponse.book[0].description[0]
+                            description = description.replace(/<br\s*[\/]?>/g,"")
+                            description = description.replace(/<i>/g,"")
+                            description = description.replace(/<[\/]i>/g,"")
+                           
+                            books.create({
+                                author: book.author,
+                                title: book.title,
+                                imageSrc: book.imageSrc,
+                                description: description,
+                                rating: book.rating,
+                                pubYear: book.pubYear,
+                                pubMonth: book.pubMonth
+                            })
+                            .then(book => {
+                                user.topBooks.push(book)
+                                user.topBooksSearch="";
+                                user.save()
+                                .then( () => {
+                                    res.send(user.topBooks)
+                                })
+
+                            }) 
+                                            
+                        });
+                    })           
+                
+                
+            });
+        })
+        .catch(function (error) {
+            res.send(error);
+        });
+})
+
+router.post("/topBooks/:title", jwtAuth, loadUser, function (req, res) {
+
+    let user = req.user
+    const myurl = "https://www.goodreads.com/search/index.xml"
+    //my goodReads key
+    const key = "u357GGD3r1AuoeoFpQz2Q"
+    axios.get(myurl, {
+        params: {
+            q: req.params.title,
+            key,
+        }
+    })
+        .then(function (data) {
+            parseString(data.data, function (err, result) {
+
+                const searchResult = []
+                const showURL = "https://www.goodreads.com/book/show.xml"
+                for (i = 0; i < 5; i++ ){
+                 bookResult =  {  
+                 index : i,
+                 bookID :result.GoodreadsResponse.search[0].results[0].work[i].best_book[0].id[0]._,
+                 rating :result.GoodreadsResponse.search[0].results[0].work[i].average_rating[0],
+                 title : result.GoodreadsResponse.search[0].results[0].work[i].best_book[0].title[0],
+                 author: result.GoodreadsResponse.search[0].results[0].work[i].best_book[0].author[0],
+                 imageSrc: result.GoodreadsResponse.search[0].results[0].work[i].best_book[0].image_url[0],
+                 pubYear : result.GoodreadsResponse.search[0].results[0].work[i].original_publication_year[0]._,
+                 pubMonth : result.GoodreadsResponse.search[0].results[0].work[i].original_publication_month[0]._
+                }          
+                searchResult.push(bookResult);
+                }
+                user.topBooksSearch = req.params.title
+                user.save()
+                .then(() =>{
+                    res.send(searchResult)
+                })
+                
+
+                // axios.get(showURL, {
+                //     params: {
+                //         format: "xml",
+                //         key,
+                //         id: bookID,
+
+                //     }
+                // })
+                //     .then(data => {
+
+                //         parseString(data.data, function (err, result) {
+                //             let description = result.GoodreadsResponse.book[0].description[0]
+                //             description = description.replace(/<br\s*[\/]?>/g,"")
+                //             description = description.replace(/<i>/g,"")
+                //             description = description.replace(/<[\/]i>/g,"")
+                //             description = description.replace(/<em>/g,"")
+                //             description = description.replace(/<[\/]em>/g,"")
+                //             books.create({
+                //                 author: parsed.author[0].name[0],
+                //                 title: parsed.title[0],
+                //                 imageSrc: parsed.image_url[0],
+                //                 description: description,
+                //                 rating: rating,
+                //                 pubYear: pubYear,
+                //                 pubMonth: pubMonth
+                //             })
+                //                 .then(
+                //                 function (book) {
+                                    
+                //                     user.topBooks.push(book)
+                //                     user.save()
+                //                         .then(() => {
+                //                             res.send(user.topBooks)
+                //                         })
+                //                 })
+                //         });
+
+                //     })
             });
 
         })
@@ -155,4 +324,27 @@ router.get("/currentlyReading/:title", jwtAuth, loadUser, function (req, res){
             res.send(error);
         });
 })
+
+router.get("/bookInfo/:id", jwtAuth, loadUser, function (req, res) {
+    let user = req.user
+    books.findById(req.params.id)
+        .then(book => {  
+            res.send(book)
+        })
+})
+
+router.delete("/deleteBook/:id", jwtAuth, loadUser, function (req, res){
+    let user = req.user;
+    books.findByIdAndRemove(req.params.id)
+    .then( () =>{
+        const removed = user.topBooks.filter(book => book._id != req.params.id)
+        user.topBooks = removed;
+        user.save()
+        .then(() => {
+            res.send(user.topBooks)
+        })
+    })
+ 
+})
+
 module.exports = { router };

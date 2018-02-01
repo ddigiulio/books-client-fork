@@ -8,7 +8,8 @@ const UserSchema = mongoose.Schema({
   username: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    
   },
   password: {
     type: String,
@@ -17,11 +18,36 @@ const UserSchema = mongoose.Schema({
   firstName: {type: String, default: ''},
   lastName: {type: String, default: ''},
   currentlyReading: {
+      _id: String,
+      description: String,
+      pubYear: Number,
+      pubMonth: Number,
+      rating: Number,
       title: String,
       author: String,
       imageSrc: String
-  }
-});
+  },
+  topBooks: [{
+      description: String,
+      pubYear: Number,
+      pubMonth: Number,
+      rating: Number,
+      title: String,
+      author: String,
+      imageSrc: String
+  }],
+  topAuthors:[{
+      name: String,
+      about: String,
+      born: String,
+      died: String,
+      largeImageSrc: String,
+      imageSrc: String,
+      hometown: String,   
+  }],
+  currentSearch: {type: String},
+  topBooksSearch: {type: String}
+}) ;
 
 UserSchema.methods.serialize = function() {
   return {
