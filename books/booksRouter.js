@@ -277,45 +277,6 @@ router.post("/topBooks/:title", jwtAuth, loadUser, function (req, res) {
                     res.send(searchResult)
                 })
                 
-
-                // axios.get(showURL, {
-                //     params: {
-                //         format: "xml",
-                //         key,
-                //         id: bookID,
-
-                //     }
-                // })
-                //     .then(data => {
-
-                //         parseString(data.data, function (err, result) {
-                //             let description = result.GoodreadsResponse.book[0].description[0]
-                //             description = description.replace(/<br\s*[\/]?>/g,"")
-                //             description = description.replace(/<i>/g,"")
-                //             description = description.replace(/<[\/]i>/g,"")
-                //             description = description.replace(/<em>/g,"")
-                //             description = description.replace(/<[\/]em>/g,"")
-                //             books.create({
-                //                 author: parsed.author[0].name[0],
-                //                 title: parsed.title[0],
-                //                 imageSrc: parsed.image_url[0],
-                //                 description: description,
-                //                 rating: rating,
-                //                 pubYear: pubYear,
-                //                 pubMonth: pubMonth
-                //             })
-                //                 .then(
-                //                 function (book) {
-                                    
-                //                     user.topBooks.push(book)
-                //                     user.save()
-                //                         .then(() => {
-                //                             res.send(user.topBooks)
-                //                         })
-                //                 })
-                //         });
-
-                //     })
             });
 
         })

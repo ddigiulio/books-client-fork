@@ -4,14 +4,10 @@ const authorsSchema = mongoose.Schema({
   name: {type: String, required: true},
   about: {type: String, required: true},
   imageSrc: {type: String, required: true},
-  largeImageSrc: {type: String},
+  smallImageSrc: {type: String},
   born: {type: String},
   died: {type: String},
   hometown: {type: String},
-  books: {
-    type: Array,
-    'default': []
-  }
 
 });
 

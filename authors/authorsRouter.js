@@ -27,78 +27,160 @@ const loadUser = function (req, res, next) {
     }
 }
 
-router.post("/:name", jwtAuth, loadUser, function(request, response){
+router.get("/topAuthors", 
+    jwtAuth, 
+    loadUser, 
+    function (req, res) {
+    let user = req.user
+    res.send(user.topAuthors)
+
+})
+
+router.get("/authorInfo/:id", jwtAuth, loadUser, function (req, res) {
+    let user = req.user
+    authors.findById(req.params.id)
+        .then(author => {  
+            res.send(author)
+        })
+})
+
+router.post("/:name", jwtAuth, loadUser, function (request, response) {
     let user = request.user
-    var url =  "https://www.goodreads.com/api/author_url/"
+    var url = "https://www.goodreads.com/api/author_url/"
     var id = request.params.name
     var myurl = url + id;
     var key = "u357GGD3r1AuoeoFpQz2Q"
     axios.get(myurl, {
-    params: {
-      key
-    }
+        params: {
+            key
+        }
     })
-    .then(function (data) {
-      
-      parseString(data.data, function (err, result) {  
-      const param = result.GoodreadsResponse.author[0].$.id
-      const url = "http://localhost:8080/authors/" + param
-      
-      axios.get(url)
-        .then(result => {
-            const parsed = result.data.GoodreadsResponse.author[0]       
-            // const book = parsed.books[0].book
+        .then(function (data) {
 
-            authors.create({
-                name: parsed.name[0],
-                about: parsed.about[0],
-                imageSrc: parsed.image_url[0],
-                largeImageSrc: parsed.large_image_url[0],
-                born: parsed.born_at[0],
-                died: parsed.died_at[0],
-                hometown: parsed.hometown[0],
-                // books: parsed.books[0].book
-            })
-            .then(author => {
-                user.topAuthors.push(author)
-                user.save()
-                .then( () => {
-                    response.send(user.topAuthors)
-                })
-            })
-      })
-      });  
+            parseString(data.data, function (err, result) {
+                const param = result.GoodreadsResponse.author[0].$.id
+                const url = "http://localhost:8080/authors/searchAuthor/" + param
+                let searchResult = [];
+                let author= {};
+                axios.get(url)
+                    .then(result => {
+                        const parsed = result.data.GoodreadsResponse.author[0]
+                       
+                        author = {
+                            id : parsed.id[0],
+                            name: parsed.name[0],
+                            imageSrc: parsed.image_url[0],
+                            
+                        }
+                        
+                        searchResult.push(author)
+                        user.authorSearch = request.params.name;
+                        user.save()
+                        .then(() =>{
+                            response.send(searchResult)
+                        })
+                    })
+            });
+        })
+        .catch(function (error) {
+            console.log(error);
+            response.send(error);
+        });
+})
+
+router.post("/topAuthorAdd/:authorID", jwtAuth, loadUser, function (request, response) {
+
+
+    let user = request.user
+    var url = "https://www.goodreads.com/api/author_url/"
+    var id = user.authorSearch
+    var myurl = url + id;
+    var key = "u357GGD3r1AuoeoFpQz2Q"
+    axios.get(myurl, {
+        params: {
+            key
+        }
     })
-    .catch(function (error) {
-      console.log(error);
-      response.send(error);
-    });
-  })
+        .then(function (data) {
 
-router.get("/:id", function(request, response){
+            parseString(data.data, function (err, result) {
+                const param = result.GoodreadsResponse.author[0].$.id
+                const url = "http://localhost:8080/authors/searchAuthor/" + param
+                let searchResult = [];
+                let author= {};
+                axios.get(url)
+                    .then(result => {
+                        const parsed = result.data.GoodreadsResponse.author[0]
+                        console.log("in top authors add")
+                        console.log(parsed.small_image_url[0])
+                        // const book = parsed.books[0].book
+                        //just return search result here
+                        
+                        authors.create({
+                            name: parsed.name[0],
+                            about: parsed.about[0],
+                            imageSrc: parsed.image_url[0],
+                            smallImageSrc: parsed.small_image_url[0],
+                            born: parsed.born_at[0],
+                            died: parsed.died_at[0],
+                            hometown: parsed.hometown[0],
+                            // books: parsed.books[0].book
+                        })
+                            .then(author => {
+                                user.topAuthors.push(author)
+                                user.save()
+                                    .then(() => {
+                                        // console.log(user.topAuthors)
+                                        response.send(user.topAuthors)
+                                    })
+                            })
+                    })
+            });
+        })
+        .catch(function (error) {
+            console.log(error);
+            response.send(error);
+        });
+})
 
-    var url =  "https://www.goodreads.com/author/show/" 
+//this only gets called by other function
+router.get("/searchAuthor/:id", function (request, response) {
+
+    var url = "https://www.goodreads.com/author/show/"
     var id = request.params.id
     var myurl = url + id;
     var key = "u357GGD3r1AuoeoFpQz2Q"
     axios.get(myurl, {
-    params: {
-      key
-    }
+        params: {
+            key
+        }
     })
-    .then(function (data) {
-      
-      parseString(data.data, function (err, result) {
-        
-      response.send(result)
-  });
-      
+        .then(function (data) {
+
+            parseString(data.data, function (err, result) {
+
+                response.send(result)
+            });
+
+        })
+        .catch(function (error) {
+            console.log(error);
+            response.send(error);
+        });
+})
+
+router.delete("/deleteAuthor/:id", jwtAuth, loadUser, function (req, res){
+    let user = req.user;
+    authors.findByIdAndRemove(req.params.id)
+    .then( () =>{
+        const removed = user.topAuthors.filter(author => author._id != req.params.id)
+        user.topAuthors = removed;
+        user.save()
+        .then(() => {
+            res.send(user.topAuthors)
+        })
     })
-    .catch(function (error) {
-      console.log(error);
-      response.send(error);
-    });
-  })
+ 
+})
 
-
-  module.exports = { router };
+module.exports = { router };

@@ -41,12 +41,13 @@ const UserSchema = mongoose.Schema({
       about: String,
       born: String,
       died: String,
-      largeImageSrc: String,
+      smallImageSrc: String,
       imageSrc: String,
       hometown: String,   
   }],
   currentSearch: {type: String},
-  topBooksSearch: {type: String}
+  topBooksSearch: {type: String},
+  authorSearch: {type: String}
 }) ;
 
 UserSchema.methods.serialize = function() {
