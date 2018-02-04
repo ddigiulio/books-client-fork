@@ -111,10 +111,6 @@ router.post("/topAuthorAdd/:authorID", jwtAuth, loadUser, function (request, res
                 axios.get(url)
                     .then(result => {
                         const parsed = result.data.GoodreadsResponse.author[0]
-                        console.log("in top authors add")
-                        console.log(parsed.small_image_url[0])
-                        // const book = parsed.books[0].book
-                        //just return search result here
                         
                         authors.create({
                             name: parsed.name[0],
