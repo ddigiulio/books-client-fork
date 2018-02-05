@@ -10,7 +10,7 @@ router.use(jsonParser);
 const { User } = require('../users/models')
 
 const { authors } = require('./models')
-
+//comment
 const jwtAuth = passport.authenticate('jwt', { session: false });
 const loadUser = function (req, res, next) {
     if (req.user.id) {
