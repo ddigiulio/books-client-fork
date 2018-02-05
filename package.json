@@ -4,8 +4,9 @@
   "description": "books api ",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon server.js",
-    "test": "mocha --exit"
+    "start": "node server.js",
+    "test": "mocha --exit",
+    "dev": "nodemon server.js"
   },
   "author": "",
   "license": "ISC",
@@ -28,5 +29,8 @@
     "passport-jwt": "^2.2.1",
     "passport-local": "^1.0.0",
     "xml2js": "^0.4.19"
+  },
+  "devDependencies": {
+    "nodemon": "^1.14.12"
   }
 }
